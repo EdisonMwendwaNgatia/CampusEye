@@ -9,9 +9,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.campuseyeai.ui.theme.ConsoleTheme
 
 @Composable
 fun CameraCard(
@@ -20,20 +21,29 @@ fun CameraCard(
     status: String = "ONLINE",
     onClick: () -> Unit
 ) {
+    val isOnline = status == "ONLINE"
+    val statusColor = if (isOnline) ConsoleTheme.Emerald else ConsoleTheme.Alert
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .height(170.dp)
-            .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(8.dp),
-        shape = RoundedCornerShape(18.dp)
+            .clickable(enabled = isOnline) { onClick() },
+        elevation = CardDefaults.cardElevation(0.dp),
+        shape = RoundedCornerShape(ConsoleTheme.CornerRadiusSM),
+        colors = CardDefaults.cardColors(
+            containerColor = ConsoleTheme.Surface
+        ),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (isOnline) ConsoleTheme.SurfaceLine else ConsoleTheme.AlertDim
+        )
     ) {
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(ConsoleTheme.SpaceMD),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
 
@@ -44,23 +54,24 @@ fun CameraCard(
                 Icon(
                     imageVector = Icons.Default.Videocam,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = if (isOnline) ConsoleTheme.Emerald else ConsoleTheme.TextMuted
                 )
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(ConsoleTheme.SpaceSM))
 
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    color = if (isOnline) ConsoleTheme.TextPrimary else ConsoleTheme.TextMuted,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp
                 )
 
             }
 
             Text(
                 text = location,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray
+                color = ConsoleTheme.TextMuted,
+                fontSize = 12.sp
             )
 
             Row(
@@ -69,15 +80,17 @@ fun CameraCard(
 
                 Text(
                     text = "●",
-                    color = Color(0xFF00C853)
+                    color = statusColor,
+                    fontSize = 12.sp
                 )
 
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(ConsoleTheme.SpaceXS))
 
                 Text(
                     text = status,
-                    color = Color(0xFF00C853),
-                    fontWeight = FontWeight.SemiBold
+                    color = statusColor,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 12.sp
                 )
 
             }
