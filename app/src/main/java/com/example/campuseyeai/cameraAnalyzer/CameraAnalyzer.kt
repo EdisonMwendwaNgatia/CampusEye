@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class CameraAnalyzer(
     private val recognizer: FaceRecognizer,
-    private val onRecognition: (RecognitionResult) -> Unit,
+    private val onRecognition: (List<RecognitionResult>) -> Unit,
     private val onError: (Exception) -> Unit = {}
 ) : ImageAnalysis.Analyzer {
 
@@ -26,9 +26,8 @@ class CameraAnalyzer(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val isProcessing = AtomicBoolean(false)
 
-    // Track last recognized student to avoid duplicate announcements
-    private var lastRecognizedId: String? = null
-    private var lastRecognitionTime: Long = 0L
+    // Track last recognized students to avoid duplicate announcements
+    private val recognizedCooldowns = mutableMapOf<String, Long>()
 
     override fun analyze(imageProxy: ImageProxy) {
         if (!isProcessing.compareAndSet(false, true)) {
@@ -38,23 +37,17 @@ class CameraAnalyzer(
 
         scope.launch {
             try {
-                val result = recognizer.recognize(imageProxy)
+                val results = recognizer.recognize(imageProxy)
 
                 withContext(Dispatchers.Main) {
-                    // Handle nullable result
-                    if (result != null) {
-                        // Suppress duplicate recognition within cooldown
-                        if (shouldNotify(result)) {
-                            onRecognition(result)
-                            if (result.recognized) {
-                                lastRecognizedId = result.admissionNo
-                                lastRecognitionTime = System.currentTimeMillis()
+                    val newResults = results.filter { shouldNotify(it) }
+                    if (newResults.isNotEmpty()) {
+                        onRecognition(newResults)
+                        for (result in newResults) {
+                            if (result.recognized && result.admissionNo != null) {
+                                recognizedCooldowns[result.admissionNo] = System.currentTimeMillis()
                             }
                         }
-                    } else {
-                        // If result is null, we can optionally notify about failure
-                        // or just ignore it
-                        // onRecognition(RecognitionResult(recognized = false))
                     }
                 }
 
@@ -69,21 +62,40 @@ class CameraAnalyzer(
                 // Close the image proxy and reset processing flag
                 imageProxy.close()
                 isProcessing.set(false)
+                
+                // Cleanup old cooldowns occasionally
+                cleanupCooldowns()
             }
         }
     }
 
     private fun shouldNotify(result: RecognitionResult): Boolean {
-        if (!result.recognized) {
-            return true // Always notify unknown
-        }
-
         val currentTime = System.currentTimeMillis()
-        val isSameStudent = result.admissionNo == lastRecognizedId
-        val isWithinCooldown = (currentTime - lastRecognitionTime) < COOLDOWN
+        
+        if (result.recognized && result.admissionNo != null) {
+            val lastRecognitionTime = recognizedCooldowns[result.admissionNo] ?: 0L
+            return (currentTime - lastRecognitionTime) >= COOLDOWN
+        } else {
+            // Cooldown for unknown faces using trackingId
+            val key = "unknown_${result.trackingId ?: "none"}"
+            val lastRecognitionTime = recognizedCooldowns[key] ?: 0L
+            if ((currentTime - lastRecognitionTime) >= COOLDOWN) {
+                recognizedCooldowns[key] = currentTime
+                return true
+            }
+            return false
+        }
+    }
 
-        // Only notify if it's a different student or cooldown has passed
-        return !(isSameStudent && isWithinCooldown)
+    private fun cleanupCooldowns() {
+        val currentTime = System.currentTimeMillis()
+        val iterator = recognizedCooldowns.entries.iterator()
+        while (iterator.hasNext()) {
+            val entry = iterator.next()
+            if (currentTime - entry.value > COOLDOWN * 2) {
+                iterator.remove()
+            }
+        }
     }
 
     fun shutdown() {

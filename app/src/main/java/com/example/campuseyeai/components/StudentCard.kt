@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -40,7 +41,8 @@ private val Mono = FontFamily.Monospace
 @Composable
 fun StudentCard(
     student: Student,
-    onGenerateEmbedding: () -> Unit
+    onGenerateEmbedding: () -> Unit,
+    onDelete: () -> Unit,
 ) {
     val imageFile = File(student.imageFolder, "center.jpg")
     val generated = student.centerEmbedding.isNotBlank()
@@ -119,6 +121,18 @@ fun StudentCard(
                             letterSpacing = 0.5.sp
                         )
                     }
+                }
+
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.align(Alignment.Top)
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete Student",
+                        tint = Color.Red.copy(alpha = 0.7f),
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
 

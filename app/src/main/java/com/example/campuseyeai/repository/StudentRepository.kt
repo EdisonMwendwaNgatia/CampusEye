@@ -28,6 +28,10 @@ class StudentRepository(
         return dao.getAllStudents()
     }
 
+    suspend fun deleteStudent(admissionNo: String) {
+        dao.deleteStudent(admissionNo)
+    }
+
     suspend fun updateEmbeddings(
         admissionNo: String,
         center: String,

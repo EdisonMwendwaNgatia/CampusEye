@@ -25,6 +25,9 @@ interface StudentDao {
         id: String
     ): Student?
 
+    @Query("DELETE FROM students WHERE admissionNo = :admissionNo")
+    suspend fun deleteStudent(admissionNo: String)
+
     @Query("""
 UPDATE students
 SET centerEmbedding = :center,

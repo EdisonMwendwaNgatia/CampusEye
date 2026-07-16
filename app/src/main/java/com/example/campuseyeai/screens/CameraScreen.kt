@@ -63,13 +63,10 @@ fun CameraScreen(
     // UI State
     var scanState by remember { mutableStateOf(ScanState.WAITING) }
     var recognitionStatus by remember { mutableStateOf("SCANNING") }
-    var recognitionSubtext by remember { mutableStateOf("Looking for a face") }
-    var studentName by remember { mutableStateOf<String?>(null) }
-    var studentAdmissionNo by remember { mutableStateOf<String?>(null) }
-    var confidence by remember { mutableStateOf(0f) }
-    var isRecognized by remember { mutableStateOf(false) }
-    var showResultCard by remember { mutableStateOf(false) }
-    var isProcessing by remember { mutableStateOf(false) }
+    var recognitionSubtext by remember { mutableStateOf("Looking for faces") }
+    
+    // Track multiple active recognitions
+    val activeRecognitions = remember { mutableStateListOf<RecognitionResult>() }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
@@ -92,56 +89,45 @@ fun CameraScreen(
     val cameraAnalyzer = remember {
         CameraAnalyzer(
             recognizer = faceRecognizer,
-            onRecognition = { result ->
+            onRecognition = { results ->
                 scope.launch {
-                    // Handle recognition result
-                    isProcessing = false
+                    results.forEach { result ->
+                        val isDuplicate = if (result.recognized) {
+                            activeRecognitions.any { it.admissionNo == result.admissionNo }
+                        } else {
+                            activeRecognitions.any { it.trackingId == result.trackingId }
+                        }
 
-                    if (result.recognized) {
-                        // Student recognized
-                        isRecognized = true
-                        studentName = result.studentName
-                        studentAdmissionNo = result.admissionNo
-                        confidence = result.similarity
-                        scanState = ScanState.RECOGNIZED
-                        recognitionStatus = "RECOGNIZED"
-                        recognitionSubtext = "${result.studentName} (${result.admissionNo})"
-                        showResultCard = true
+                        if (!isDuplicate) {
+                            activeRecognitions.add(result)
+                            scope.launch {
+                                delay(if (result.recognized) 4000 else 2500)
+                                activeRecognitions.remove(result)
+                            }
+                        }
+                    }
 
-                        Log.d("CameraScreen", "Recognized: ${result.studentName} with confidence ${result.similarity}")
-
-                        // Hide result card after 3 seconds
-                        delay(3000)
-                        showResultCard = false
-                        scanState = ScanState.WAITING
-                        recognitionStatus = "SCANNING"
-                        recognitionSubtext = "Looking for a face"
+                    if (activeRecognitions.isNotEmpty()) {
+                        val recognizedCount = activeRecognitions.count { it.recognized }
+                        if (recognizedCount > 0) {
+                            scanState = ScanState.RECOGNIZED
+                            recognitionStatus = "RECOGNIZED"
+                            recognitionSubtext = "Identified $recognizedCount person(s)"
+                        } else {
+                            scanState = ScanState.UNKNOWN
+                            recognitionStatus = "NOT RECOGNIZED"
+                            recognitionSubtext = "Unknown person(s) detected"
+                        }
                     } else {
-                        // Not recognized
-                        isRecognized = false
-                        studentName = null
-                        studentAdmissionNo = null
-                        confidence = result.similarity
-                        scanState = ScanState.UNKNOWN
-                        recognitionStatus = "NOT RECOGNIZED"
-                        recognitionSubtext = "Unknown person — ${(result.similarity * 100).toInt()}% match"
-                        showResultCard = true
-
-                        Log.d("CameraScreen", "Not recognized, similarity: ${result.similarity}")
-
-                        // Hide result card after 2 seconds
-                        delay(2000)
-                        showResultCard = false
                         scanState = ScanState.WAITING
                         recognitionStatus = "SCANNING"
-                        recognitionSubtext = "Looking for a face"
+                        recognitionSubtext = "Looking for faces"
                     }
                 }
             },
             onError = { error ->
                 scope.launch {
                     // Handle error
-                    isProcessing = false
                     scanState = ScanState.ERROR
                     recognitionStatus = "ERROR"
                     recognitionSubtext = error.message ?: "Unknown error"
@@ -289,69 +275,57 @@ fun CameraScreen(
                     }
                 }
 
-                // Recognition Result Card (overlay)
-                if (showResultCard) {
-                    val cardColor = if (isRecognized) Emerald else Amber
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = 16.dp)
-                            .fillMaxWidth(0.9f)
-                            .background(Surface, RoundedCornerShape(8.dp))
-                            .border(1.dp, cardColor.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
-                            .padding(18.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                if (isRecognized) Icons.Default.CheckCircle else Icons.Default.Error,
-                                contentDescription = null,
-                                tint = cardColor
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                if (isRecognized) (studentName ?: "Student") else "Unknown person",
-                                color = TextPrimary,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(10.dp))
-                        if (isRecognized) {
-                            Text(
-                                "ADMISSION NO  ${studentAdmissionNo ?: "N/A"}",
-                                color = TextMuted,
-                                fontFamily = Mono,
-                                fontSize = 12.sp,
-                                letterSpacing = 0.5.sp
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                        }
-                        Text(
-                            "CONFIDENCE  ${(confidence * 100).toInt()}%",
-                            color = cardColor,
-                            fontFamily = Mono,
-                            fontSize = 12.sp,
-                            letterSpacing = 0.5.sp
-                        )
-                    }
-                }
-
-                // Processing indicator
-                if (isProcessing) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .size(60.dp)
-                            .background(Surface, CircleShape)
-                            .border(1.dp, SurfaceLine, CircleShape)
-                    ) {
-                        CircularProgressIndicator(
+                // Recognition Results (Stacked cards)
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 16.dp)
+                        .fillMaxWidth(0.9f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    activeRecognitions.forEach { result ->
+                        val cardColor = if (result.recognized) Emerald else Amber
+                        Column(
                             modifier = Modifier
-                                .padding(12.dp)
-                                .size(36.dp),
-                            color = Emerald,
-                            strokeWidth = 3.dp
-                        )
+                                .fillMaxWidth()
+                                .background(Surface, RoundedCornerShape(8.dp))
+                                .border(1.dp, cardColor.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                                .padding(14.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    if (result.recognized) Icons.Default.CheckCircle else Icons.Default.Error,
+                                    contentDescription = null,
+                                    tint = cardColor,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    if (result.recognized) (result.studentName ?: "Student") else "Unknown person",
+                                    color = TextPrimary,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                            if (result.recognized) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    "ID  ${result.admissionNo ?: "N/A"} • ${(result.similarity * 100).toInt()}% match",
+                                    color = TextMuted,
+                                    fontFamily = Mono,
+                                    fontSize = 11.sp,
+                                    letterSpacing = 0.5.sp
+                                )
+                            } else {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    "LOW CONFIDENCE • ${(result.similarity * 100).toInt()}% match",
+                                    color = cardColor,
+                                    fontFamily = Mono,
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
                     }
                 }
             } else {

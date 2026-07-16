@@ -1,5 +1,7 @@
 package com.example.campuseyeai.aiAnalyzer
 
+import android.graphics.Rect
+
 data class RecognitionResult(
 
     val recognized: Boolean,
@@ -8,6 +10,10 @@ data class RecognitionResult(
 
     val admissionNo: String? = null,
 
-    val similarity: Float = 0f
+    val similarity: Float = 0f,
+
+    val boundingBox: Rect? = null,
+
+    val trackingId: Int? = null
 
 )

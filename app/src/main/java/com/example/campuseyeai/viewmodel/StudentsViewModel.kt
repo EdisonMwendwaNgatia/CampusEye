@@ -98,6 +98,12 @@ class StudentsViewModel(
 
     }
 
+    fun deleteStudent(admissionNo: String) {
+        viewModelScope.launch {
+            repository.deleteStudent(admissionNo)
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
 

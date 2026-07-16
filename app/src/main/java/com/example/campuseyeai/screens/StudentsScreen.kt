@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.campuseyeai.components.StudentCard
+import com.example.campuseyeai.database.Student
 import com.example.campuseyeai.di.AppContainer
 import com.example.campuseyeai.viewmodel.StudentsViewModel
 import com.example.campuseyeai.viewmodel.StudentsViewModelFactory
@@ -45,6 +46,34 @@ fun StudentsScreen(
     val students by viewModel.students.collectAsState(
         initial = emptyList()
     )
+
+    var studentToDelete by remember { mutableStateOf<Student?>(null) }
+
+    if (studentToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { studentToDelete = null },
+            title = { Text("Delete Student", fontFamily = Mono) },
+            text = { Text("Are you sure you want to delete ${studentToDelete?.fullName}?", fontFamily = Mono) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        studentToDelete?.let { viewModel.deleteStudent(it.admissionNo) }
+                        studentToDelete = null
+                    }
+                ) {
+                    Text("DELETE", color = Color.Red, fontFamily = Mono)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { studentToDelete = null }) {
+                    Text("CANCEL", fontFamily = Mono)
+                }
+            },
+            containerColor = Surface,
+            titleContentColor = TextPrimary,
+            textContentColor = TextMuted
+        )
+    }
 
     Scaffold(
         containerColor = BgDeep,
@@ -133,6 +162,9 @@ fun StudentsScreen(
                                 context = context,
                                 student = student
                             )
+                        },
+                        onDelete = {
+                            studentToDelete = student
                         }
                     )
                 }
