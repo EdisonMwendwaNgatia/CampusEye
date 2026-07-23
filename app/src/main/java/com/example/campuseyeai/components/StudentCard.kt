@@ -100,7 +100,7 @@ fun StudentCard(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "ID  ${student.admissionNo}",
+                        if (student.isVisitor) "V-ID  ${student.admissionNo}" else "ID  ${student.admissionNo}",
                         color = TextMuted,
                         fontFamily = Mono,
                         fontSize = 12.sp,

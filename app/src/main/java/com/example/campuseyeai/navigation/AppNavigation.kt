@@ -37,8 +37,16 @@ fun AppNavigation(studentRepository: StudentRepository) {
             RegisterStudentScreen(navController)
         }
 
+        composable("register_visitor") {
+            RegisterStudentScreen(navController, isVisitorMode = true)
+        }
+
         composable("students") {
             StudentsScreen(navController)
+        }
+
+        composable("visitors") {
+            StudentsScreen(navController, isVisitorMode = true)
         }
 
         composable(

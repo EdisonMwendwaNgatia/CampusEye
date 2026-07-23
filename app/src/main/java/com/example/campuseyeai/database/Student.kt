@@ -19,5 +19,7 @@ data class Student(
 
     val leftEmbedding: String,
 
-    val rightEmbedding: String
+    val rightEmbedding: String,
+
+    val isVisitor: Boolean = false
 )

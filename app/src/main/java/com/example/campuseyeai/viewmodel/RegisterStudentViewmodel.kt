@@ -25,7 +25,8 @@ class RegisterStudentViewModel(
         admissionNo: String,
         fullName: String,
         className: String,
-        imageFolder: String
+        imageFolder: String,
+        isVisitor: Boolean = false
     ) {
 
         if (
@@ -62,7 +63,9 @@ class RegisterStudentViewModel(
 
                     leftEmbedding = "",
 
-                    rightEmbedding = ""
+                    rightEmbedding = "",
+
+                    isVisitor = isVisitor
 
                 )
 

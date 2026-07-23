@@ -98,7 +98,8 @@ class FaceRecognizer(
                             admissionNo = bestStudent.admissionNo,
                             similarity = bestScore,
                             boundingBox = face.boundingBox,
-                            trackingId = face.trackingId
+                            trackingId = face.trackingId,
+                            isVisitor = bestStudent.isVisitor
                         )
                     )
                 }

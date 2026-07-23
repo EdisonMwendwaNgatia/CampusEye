@@ -35,7 +35,8 @@ private val Mono = FontFamily.Monospace
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudentsScreen(
-    navController: NavController
+    navController: NavController,
+    isVisitorMode: Boolean = false
 ) {
     val context = LocalContext.current
     val viewModel: StudentsViewModel = viewModel(
@@ -43,9 +44,17 @@ fun StudentsScreen(
             AppContainer.repository
         )
     )
-    val students by viewModel.students.collectAsState(
+    val allStudents by viewModel.students.collectAsState(
         initial = emptyList()
     )
+
+    val displayedPeople = remember(allStudents, isVisitorMode) {
+        allStudents.filter { it.isVisitor == isVisitorMode }
+    }
+
+    val titleText = if (isVisitorMode) "VISITOR REGISTRY" else "STUDENT REGISTRY"
+    val emptyText = if (isVisitorMode) "NO VISITORS REGISTERED" else "NO STUDENTS REGISTERED"
+    val emptySubtext = if (isVisitorMode) "Enroll a visitor to begin building the registry" else "Enroll a student to begin building the registry"
 
     var studentToDelete by remember { mutableStateOf<Student?>(null) }
 
@@ -82,15 +91,15 @@ fun StudentsScreen(
                 title = {
                     Column {
                         Text(
-                            "STUDENT REGISTRY",
+                            titleText,
                             fontFamily = Mono,
                             fontSize = 15.sp,
                             letterSpacing = 1.5.sp,
                             color = TextPrimary
                         )
-                        if (students.isNotEmpty()) {
+                        if (displayedPeople.isNotEmpty()) {
                             Text(
-                                "${students.size} ENROLLED",
+                                "${displayedPeople.size} ENROLLED",
                                 fontFamily = Mono,
                                 fontSize = 10.sp,
                                 letterSpacing = 1.sp,
@@ -111,7 +120,7 @@ fun StudentsScreen(
             )
         }
     ) { padding ->
-        if (students.isEmpty()) {
+        if (displayedPeople.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -130,7 +139,7 @@ fun StudentsScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        "NO STUDENTS REGISTERED",
+                        emptyText,
                         color = TextPrimary,
                         fontFamily = Mono,
                         fontSize = 13.sp,
@@ -138,7 +147,7 @@ fun StudentsScreen(
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        "Enroll a student to begin building the registry",
+                        emptySubtext,
                         color = TextMuted,
                         fontFamily = Mono,
                         fontSize = 11.sp
@@ -154,7 +163,7 @@ fun StudentsScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(students) { student ->
+                items(displayedPeople) { student ->
                     StudentCard(
                         student = student,
                         onGenerateEmbedding = {

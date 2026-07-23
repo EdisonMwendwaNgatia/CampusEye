@@ -44,10 +44,18 @@ private val Mono = FontFamily.Monospace
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterStudentScreen(
-    navController: NavController
+    navController: NavController,
+    isVisitorMode: Boolean = false
 ) {
 
     val context = LocalContext.current
+
+    val titleText = if (isVisitorMode) "VISITOR ENROLLMENT" else "NEW ENROLLMENT"
+    val idLabel = if (isVisitorMode) "VISITOR ID / PHONE" else "ADMISSION NUMBER"
+    val groupLabel = if (isVisitorMode) "PURPOSE OF VISIT" else "CLASS"
+    val saveButtonText = if (isVisitorMode) "SAVE VISITOR" else "SAVE STUDENT"
+    val successRoute = if (isVisitorMode) "visitors" else "students"
+    val popRoute = if (isVisitorMode) "register_visitor" else "register"
 
     var admission by remember { mutableStateOf("") }
     var fullname by remember { mutableStateOf("") }
@@ -82,8 +90,8 @@ fun RegisterStudentScreen(
     // Navigate when registration is successful
     LaunchedEffect(registrationSuccess) {
         if (registrationSuccess) {
-            navController.navigate("students") {
-                popUpTo("register") {
+            navController.navigate(successRoute) {
+                popUpTo(popRoute) {
                     inclusive = true
                 }
             }
@@ -97,7 +105,7 @@ fun RegisterStudentScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "NEW ENROLLMENT",
+                        titleText,
                         fontFamily = Mono,
                         fontSize = 15.sp,
                         letterSpacing = 1.5.sp,
@@ -127,7 +135,7 @@ fun RegisterStudentScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            FieldLabel("ADMISSION NUMBER")
+            FieldLabel(idLabel)
             Spacer(modifier = Modifier.height(6.dp))
             OutlinedTextField(
                 value = admission,
@@ -155,7 +163,7 @@ fun RegisterStudentScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            FieldLabel("CLASS")
+            FieldLabel(groupLabel)
             Spacer(modifier = Modifier.height(6.dp))
             OutlinedTextField(
                 value = className,
@@ -264,16 +272,18 @@ fun RegisterStudentScreen(
                         !isSaving,
                 onClick = {
                     // Get the absolute path for the image folder
+                    val typeFolder = if (isVisitorMode) "visitors" else "students"
                     val imageFolderPath = File(
                         context.filesDir,
-                        "students/$admission"
+                        "$typeFolder/$admission"
                     ).absolutePath
 
                     viewModel.registerStudent(
                         admissionNo = admission,
                         fullName = fullname,
                         className = className,
-                        imageFolder = imageFolderPath
+                        imageFolder = imageFolderPath,
+                        isVisitor = isVisitorMode
                     )
                 },
                 shape = RoundedCornerShape(4.dp),
@@ -285,7 +295,7 @@ fun RegisterStudentScreen(
                 )
             ) {
                 Text(
-                    "SAVE STUDENT",
+                    saveButtonText,
                     fontFamily = Mono,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 0.5.sp,

@@ -36,6 +36,16 @@ fun DashboardScreen(
             "students"
         ),
         CameraItem(
+            "Register Visitor",
+            "Enroll New Visitor",
+            "register_visitor"
+        ),
+        CameraItem(
+            "Visitors",
+            "Registered Visitors",
+            "visitors"
+        ),
+        CameraItem(
             "Hall Camera",
             "Main Hall",
             "camera"

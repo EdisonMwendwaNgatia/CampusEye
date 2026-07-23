@@ -309,8 +309,9 @@ fun CameraScreen(
                             }
                             if (result.recognized) {
                                 Spacer(modifier = Modifier.height(4.dp))
+                                val idPrefix = if (result.isVisitor) "V-ID" else "ID"
                                 Text(
-                                    "ID  ${result.admissionNo ?: "N/A"} • ${(result.similarity * 100).toInt()}% match",
+                                    "$idPrefix  ${result.admissionNo ?: "N/A"} • ${(result.similarity * 100).toInt()}% match",
                                     color = TextMuted,
                                     fontFamily = Mono,
                                     fontSize = 11.sp,

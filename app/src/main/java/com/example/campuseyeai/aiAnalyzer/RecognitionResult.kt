@@ -14,6 +14,8 @@ data class RecognitionResult(
 
     val boundingBox: Rect? = null,
 
-    val trackingId: Int? = null
+    val trackingId: Int? = null,
+
+    val isVisitor: Boolean = false
 
 )
